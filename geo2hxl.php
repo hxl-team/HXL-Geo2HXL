@@ -2,35 +2,70 @@
 //Geo2HXL.php: Reads csv of a single admin layer (converted to csv with WKT geom using ogr2ogr) to HXL triples.  
 
 //CHANGE LOG
+//Version 4: Adds in logic to truncate to desired precision of WKT
 //Version 3: This version checks for whether or not the admin level being processed is level 0 (the national boundary).  It ignores the atLocation property in this case.
 //Version 2: This version has revisions to map to latest version of URI patterns and the Geolocation Standard.  It adds the writing of prefixes and the DataContainer.
 
 //THINGS IT DOESN'T DO:
-//     Doesn't parse the date stamp (used for the data container name) to also get the dc:date literal.  dc:date is specified in the configuration.
-
+//Doesn't parse the date stamp (used for the data container name) to also get the dc:date literal.  dc:date is specified in the configuration.
+//Labels all data containers with the optional organization value set to "unocha".  A good future addition would be to make this configurable.
+//Some metadata elements for the datacontainer are missing (reported by, for example).  
 
 //-------------------CONFIGURATION-----------------------------------------------------
 //Delcare below which csv columns contain which data (first column = 0) and other needed info from user
 //See http://sites.google.com/site/ochaimwiki/cod-fod-guidance/administrative-boundaries for guidance on these fields
 //Also, configure the code that writes the prefixes at the beginning of the output file.  This is in the "add headers" section a bit further down.
 
-//Burkina Faso Admin 0 configuration
-//CSV header row: WKT,CNTRY_NAME,CNTRY_CODE
-$geom_element = 0 ; //which column contains the WKT geometry. First column = 0.
-$level_n_pcode_element = 2 ; //which column contains the pcode for the level that is being converted
-$level_n_minus_one_pcode_element = "ignored" ;  //which column contains the pcode for the admin unit one level above the level that is being converted. This is ignored if $n = 0 (See below).
-$n = 0 ; //base admin level being processed. Set to 0 if you are processing the national boundary.
-$featureName_element = 1 ; //which column contains the feature name
-$featureRefName_element = 1 ; //which column contains the feature ref name 
+//Burkina Faso Admin 2 configuration
+//CSV header row: WKT,CNTRY_NAME,CNTRY_CODE,ADM1_NAME,ADM1_CODE,ADM2_NAME,ADM2_CODE,Shape_Leng,Shape_Le_1,Shape_Area
+$geom_element = 0 ; //which column contains the WKT geometry. First column is 0, Second column is 1, 0
+$level_n_pcode_element = 6 ; //which column contains the pcode for the level that is being converted
+$level_n_minus_one_pcode_element = 4 ;  //which column contains the pcode for the admin unit one level above the level that is being converted. This is ignored if $n = 0 (See below).
+$n = 2 ; //base admin level being processed. Set to 0 if you are processing the national boundary, 1 for the first subnational boundary, etc.
+$featureName_element = 5 ; //which column contains the feature name
+$featureRefName_element = 5 ; //which column contains the feature ref name.  A REFNAME field can be included which contains a version of the name without accented characters or apostrophes (which cause problems in some applications).  Spaces and hyphens are allowed.  Refname is expressed in proper case.  For example, the administrative unit name "Sixt-Fer-à-Cheval" would become "Sixt-Fer-a-Cheval". Refname can be taken from the same field as the name if it meets all the criteria mentioned here. 
 $country_code = "bfa" ; //ISO 3 letter code for the country, lower case
-$file_to_process = "bfa_admbnda_adm0_1m_salb.csv" ;
-$output_file_name = "bfa_admbnda_adm0_1m_salb.ttl" ;
+$precision = 7 ; //number of decimal places to which the WKT coordinates will be truncated. For Decimal Degrees, 7 yields approximately cm precision.  The default ogr2ogr output is 15 decimal places, about the radius of a hydrogen atom.
+$file_to_process = "bfa_admbnda_adm2_1m_salb.csv" ;
+$output_file_name = "bfa_admbnda_adm2_1m_salb.ttl" ;
 //Metadata items
-$dcdate = "2012-08-08T11:16:00.0Z" ; //the date the file is created
+$dcdate = "2012-08-14T11:16:00.0Z" ; //the date the file is created
 $validityStart = "2012-07-24" ;  //Beginning date for which this dataset is the valid one.  This value is applied to the data container (named graph) which holds the data.  
 $validityEnd = "" ;  //Blank indicates that the dataset is currently valid.
 
-
+//--------------FUNCTIONS--------------------------------------------------------------------------------------
+function truncate($precision, $current_geom)
+	{
+	$output = "" ;
+	$geom_length = strlen($current_geom) ;
+	$char_counter = 99;
+	$counting = false;
+	for ($i = 0; $i <= $geom_length-1; $i++)
+		{
+		$current_char = $current_geom[$i];
+		if ($current_char == ".")
+			{
+			$char_counter = $precision + 1;
+			$counting = true;
+			}
+		elseif (in_array ($current_char, array(" " , "," , ")")))
+			{
+			$char_counter = 99;
+			$counting = false;
+			}
+		if (!$counting)
+			{
+			$output = $output . $current_char ;
+			}
+		elseif ($char_counter <= $precision + 1 and $char_counter > 0 )
+			{
+			$output = $output . $current_char ;
+			}
+		if ($counting)
+			{$char_counter-- ;}
+		}
+	return $output ;
+	}
 
 //--------------DECLARE FIXED PARTS OF URIs--------------------------------------------------------------------
 
@@ -95,7 +130,7 @@ while(!feof($csv_handle))
 	fwrite($output , $admunit_uri . " " . $ns_uri . $featureRefName_id . " \"" . $oneup[$featureName_element] . "\" .\n") ;
 	fwrite($output , $base_uri . $oneup[$level_n_pcode_element] . "/" . $geom_uri . ">" . " a " . $geo_ns_uri . $Geometry_id . " .\n") ;
 	fwrite($output , $admunit_uri . " " . $geo_ns_uri . $hasGeometry_id . " " . $base_uri . $oneup[$level_n_pcode_element] . "/" . $geom_uri . "> .\n") ;
-	fwrite($output , $base_uri . $oneup[$level_n_pcode_element] . "/" . $geom_uri . "> " . $geo_ns_uri . $hasSerialization_id . " " . "\"" . $oneup[$geom_element] . "\"^^" . $geo_ns_uri . $wktLiteral_id . " .\n") ;
+	fwrite($output , $base_uri . $oneup[$level_n_pcode_element] . "/" . $geom_uri . "> " . $geo_ns_uri . $hasSerialization_id . " " . "\"" . truncate($precision,$oneup[$geom_element]) . "\"^^" . $geo_ns_uri . $wktLiteral_id . " .\n") ;
 	
 	
 	/*create polygon and geometry
