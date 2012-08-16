@@ -16,20 +16,20 @@
 //See http://sites.google.com/site/ochaimwiki/cod-fod-guidance/administrative-boundaries for guidance on these fields
 //Also, configure the code that writes the prefixes at the beginning of the output file.  This is in the "add headers" section a bit further down.
 
-//Burkina Faso Admin 2 configuration
-//CSV header row: WKT,CNTRY_NAME,CNTRY_CODE,ADM1_NAME,ADM1_CODE,ADM2_NAME,ADM2_CODE,Shape_Leng,Shape_Le_1,Shape_Area
-$geom_element = 0 ; //which column contains the WKT geometry. First column is 0, Second column is 1, 0
-$level_n_pcode_element = 6 ; //which column contains the pcode for the level that is being converted
-$level_n_minus_one_pcode_element = 4 ;  //which column contains the pcode for the admin unit one level above the level that is being converted. This is ignored if $n = 0 (See below).
-$n = 2 ; //base admin level being processed. Set to 0 if you are processing the national boundary, 1 for the first subnational boundary, etc.
-$featureName_element = 5 ; //which column contains the feature name
-$featureRefName_element = 5 ; //which column contains the feature ref name.  A REFNAME field can be included which contains a version of the name without accented characters or apostrophes (which cause problems in some applications).  Spaces and hyphens are allowed.  Refname is expressed in proper case.  For example, the administrative unit name "Sixt-Fer-à-Cheval" would become "Sixt-Fer-a-Cheval". Refname can be taken from the same field as the name if it meets all the criteria mentioned here. 
+//Burkina Faso Admin 0 configuration
+//CSV header row: WKT,CNTRY_NAME,CNTRY_CODE
+$geom_element = 0 ; //which column contains the WKT geometry. First column = 0.
+$level_n_pcode_element = 2 ; //which column contains the pcode for the level that is being converted
+$level_n_minus_one_pcode_element = "ignored" ;  //which column contains the pcode for the admin unit one level above the level that is being converted. This is ignored if $n = 0 (See below).
+$n = 0 ; //base admin level being processed. Set to 0 if you are processing the national boundary.
+$featureName_element = 1 ; //which column contains the feature name
+$featureRefName_element = 1 ; //which column contains the feature ref name 
 $country_code = "bfa" ; //ISO 3 letter code for the country, lower case
 $precision = 7 ; //number of decimal places to which the WKT coordinates will be truncated. For Decimal Degrees, 7 yields approximately cm precision.  The default ogr2ogr output is 15 decimal places, about the radius of a hydrogen atom.
-$file_to_process = "bfa_admbnda_adm2_1m_salb.csv" ;
-$output_file_name = "bfa_admbnda_adm2_1m_salb.ttl" ;
+$file_to_process = "bfa_admbnda_adm0_1m_salb.csv" ;
+$output_file_name = "bfa_admbnda_adm0_1m_salb.ttl" ;
 //Metadata items
-$dcdate = "2012-08-14T11:16:00.0Z" ; //the date the file is created
+$dcdate = "2012-08-13T11:16:00.0Z" ; //the date the file is created
 $validityStart = "2012-07-24" ;  //Beginning date for which this dataset is the valid one.  This value is applied to the data container (named graph) which holds the data.  
 $validityEnd = "" ;  //Blank indicates that the dataset is currently valid.
 
@@ -81,7 +81,6 @@ $pcode_id = "pcode" ;
 $featureName_id = "featureName" ;
 $featureRefName_id = "featureRefname" ;
 $hasGeometry_id = "hasGeometry" ;
-$Polygon_id = "Polygon" ;
 $geom_uri = "geom" ;
 $hasSerialization_id = "hasSerialization" ;
 $wktLiteral_id = "wktLiteral";
@@ -97,9 +96,9 @@ $output = fopen($output_file_name,"w") or exit ("Unable to create new file") ;
 $base_uri = $base_locations_uri . $country_code . "/" ;
 
 //add headers
-fwrite($output , "@prefix hxl: <http://hxl.humanitarianresponse.info/ns#> .
+fwrite($output , "@prefix hxl: <http://hxl.humanitarianresponse.info/ns/#> .
 @prefix geo: <http://www.opengis.net/ont/geosparql#> .
-@prefix dc: <http://www.w3.org/2001/XMLSchema#> .\n") ;
+@prefix dc: <http://purl.org/dc/terms/> .\n") ;
 //create DataContainer and associate metadata items
 $time = gettimeofday(); //get time for timestamp which is used as datacontainer name (according to the HXL standard for URI patterns)
 $timestamp = $time['sec'] . "." . $time['usec'] ;
@@ -118,7 +117,7 @@ while(!feof($csv_handle))
 	if (count($oneup)==1)
 		{break;}
 		
-	$admunit_uri = $base_uri . $oneup[$level_n_pcode_element] . "/" . ">" ;
+	$admunit_uri = $base_uri . $oneup[$level_n_pcode_element] . ">" ;
 	
 	//create adminunit and its basic attributes
 	fwrite($output , $admunit_uri . " a " . $ns_uri . $AdminUnit_id . " .\n") ;
@@ -131,15 +130,6 @@ while(!feof($csv_handle))
 	fwrite($output , $base_uri . $oneup[$level_n_pcode_element] . "/" . $geom_uri . ">" . " a " . $geo_ns_uri . $Geometry_id . " .\n") ;
 	fwrite($output , $admunit_uri . " " . $geo_ns_uri . $hasGeometry_id . " " . $base_uri . $oneup[$level_n_pcode_element] . "/" . $geom_uri . "> .\n") ;
 	fwrite($output , $base_uri . $oneup[$level_n_pcode_element] . "/" . $geom_uri . "> " . $geo_ns_uri . $hasSerialization_id . " " . "\"" . truncate($precision,$oneup[$geom_element]) . "\"^^" . $geo_ns_uri . $wktLiteral_id . " .\n") ;
-	
-	
-	/*create polygon and geometry
-	fwrite($output , $base_uri . $oneup[$level_n_pcode_element] . "/" . $geom_uri . "> " . "a ") ;
-	fwrite($output , $ns_uri . $Polygon_id . " .\n") ;
-	
-	fwrite($output , $base_uri . $oneup[$level_n_pcode_element] . "/" . $geom_uri . "> ") ;
-	fwrite($output , $ns_uri . $asWKT_id . " ") ;
-	fwrite($output , "\"" . $oneup[$geom_element] . "\"" . " .\n");*/
 	}
  
  //close the files
