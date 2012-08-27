@@ -1,4 +1,4 @@
-A tool to convert geodata files to HXL format (see hxl.humanitarianresponse.info) for use as reference data. For the moment it is designed to work only administrative boundary data.
+Scripts to convert geodata files to HXL format (see hxl.humanitarianresponse.info) for use as reference data. For the moment it is designed to work only administrative boundary data (geo2hxl) and Persons of Concern locations data from UNHCR (poc2hxl). 
 
 The tool is currently a simple script.  The intention is to ultimately build a user interface around the tool.
 
