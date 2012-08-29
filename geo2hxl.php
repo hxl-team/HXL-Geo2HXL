@@ -67,6 +67,14 @@ function truncate($precision, $current_geom)
 		}
 	return $output ;
 	}
+	
+function deaccent($x)  //used to clean refnames
+	{
+	$search = explode(",","ç,æ,œ,á,é,í,ó,ú,à,è,ì,ò,ù,ä,ë,ï,ö,ü,ÿ,â,ê,î,ô,û,å,e,i,ø,u");
+	$replace = explode(",","c,ae,oe,a,e,i,o,u,a,e,i,o,u,a,e,i,o,u,y,a,e,i,o,u,a,e,i,o,u");
+	$output = str_replace($search, $replace, $x);
+	return $output ;
+	}
 
 //--------------DECLARE FIXED PARTS OF URIs--------------------------------------------------------------------
 
@@ -131,7 +139,7 @@ while(!feof($csv_handle))
 	fwrite($output , $admunit_uri . " " . $ns_uri . $atLevel_id . " " . $base_uri . "adminlevel" . $n . "> .\n") ;
 	fwrite($output , $admunit_uri . " " . $ns_uri . $pcode_id . " \"" . $oneup[$level_n_pcode_element] . "\" .\n") ;
 	fwrite($output , $admunit_uri . " " . $ns_uri . $featureName_id . " \"" . $oneup[$featureName_element] . "\" .\n") ;
-	fwrite($output , $admunit_uri . " " . $ns_uri . $featureRefName_id . " \"" . $oneup[$featureName_element] . "\" .\n") ;
+	fwrite($output , $admunit_uri . " " . $ns_uri . $featureRefName_id . " \"" . deaccent($oneup[$featureName_element]) . "\" .\n") ;
 	fwrite($output , $base_uri . $oneup[$level_n_pcode_element] . "/" . $geom_uri . ">" . " a " . $geo_ns_uri . $Geometry_id . " .\n") ;
 	fwrite($output , $admunit_uri . " " . $geo_ns_uri . $hasGeometry_id . " " . $base_uri . $oneup[$level_n_pcode_element] . "/" . $geom_uri . "> .\n") ;
 	fwrite($output , $base_uri . $oneup[$level_n_pcode_element] . "/" . $geom_uri . "> " . $geo_ns_uri . $hasSerialization_id . " " . "\"" . truncate($precision,$oneup[$geom_element]) . "\"^^" . $geo_ns_uri . $wktLiteral_id . " .\n") ;
