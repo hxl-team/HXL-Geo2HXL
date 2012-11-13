@@ -2,7 +2,7 @@
 //Geo2HXL.php: Reads csv of a single admin layer (converted to csv with WKT geom using ogr2ogr) to HXL triples.  
 
 //CHANGE LOG
-//Version 7 09/11/2012: MAJOR REVISION - Adding logic to handle populated places
+//Version 7 13/11/2012: MAJOR REVISION - Adding logic to handle populated places and to reject rows with missing values.
 //Version 6 07/11/2012: Modifications to the data container elements to reflect the ValidOn property.
 //Version 5 17/8/2012: Adds declaration for rdf:type hxl:country .
 //Version 4: Adds in logic to truncate to desired precision of WKT
