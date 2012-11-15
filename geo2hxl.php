@@ -225,7 +225,6 @@ while(!feof($csv_handle))
 			fwrite($output , $admunit_uri . " " . $ns_uri . $atLocation_id . " " . $base_uri . $current[$level_n_minus_one_pcode_element] . "> .\n") ;
 			//determine ppl class from pplClass array
 			$class = array_search($current[$popPlaceClass_element],$pplClass) ;
-			var_dump ($class);
 			if ($class != FALSE)
 				{fwrite($output , $admunit_uri . " " . $ns_uri . $inClass_id . " " . $base_uri . "pplclass/" . $class . "> .\n") ;
 				}
