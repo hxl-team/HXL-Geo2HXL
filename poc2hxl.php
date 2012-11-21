@@ -2,6 +2,7 @@
 //POC2HXL.php: Reads csv of a Persons of Concern Locations (from UNHCR) to HXL triples.  
 
 //CHANGE LOG
+//Version 2 - 2012-11-20: better documentation, modifications for validOn property.  
 
 //THINGS IT DOESN'T DO:
 //Some metadata elements for the datacontainer are missing (reported by, for example).  
@@ -11,24 +12,25 @@
 //If necessary, configure the code that writes the prefixes at the beginning of the output file.  This is in the "add headers" section a bit further down.
 
 //UNHCR POC List Configuration
-//CSV header row: WKT,Id,Counrty,ISO3,District,Site,Type,SubType,Type_Name,Long,Lat,Update,CreateDate
+//CSV header row: WKT,OBJECTID_1,OBJECTID,Id,Counrty,District,Site,Type,SubType,Type_Name,Long_,Lat,pcode,Cntry_pcod
 $geom_element = 0 ; //which column contains the WKT geometry. First column is 0, Second column is 1, 0
-$pcode_element = 1 ; //which column contains the pcode for the level that is being converted
-$country_code_element = 3 ;  //which column contains the pcode for the admin unit one level above the level that is being converted. This is ignored if $n = 0 (See below).
-$featureName_element = 5 ; //which column contains the feature name
-$featureRefName_element = 5 ; //which column contains the feature ref name 
+$pcode_element = 3 ; //which column contains the pcode for POC. UNHCR has called this simply "ID" in the past.  We conncatenate it with UNHCR-POC-[ID]. 
+$pcode_base "UNHCR-POC-" //Consult existing APL's in the HXL database to understand which pattern makes sense for your data.  APL pcodes should be globally unique.
+$country_code_element = 13 ;  //which column contains the ISO3166 three letter code for the country in which the admin unit falls?  This is used for the URI.  
+$pcode_of_admin_unit = 12 ; //which column contains the pcode of the admin unit (at the lowest available level) in which the POC falls.
+$featureName_element = 6 ; //which column contains the feature name
+$featureRefName_element = 6 ; //which column contains the feature ref name 
 $precision = 7 ; //number of decimal places to which the WKT coordinates will be truncated. For Decimal Degrees, 7 yields approximately cm precision.  The default ogr2ogr output is 15 decimal places, about the radius of a hydrogen atom.
-$file_to_process = "wrl_apl_unhcr.csv" ;
-$output_file_name = "wrl_apl_unhcr.ttl" ;
-$description_element = 8 ;
-$description_language = "en" ; //two letter iso code for the language of the data in the description field
+$file_to_process = "sahel_poc_identity.csv" ;
+$output_file_name = "sahel_apl_unhcr.ttl" ;
+$description_element = 9 ;  //for the UNHCR POCs, we use the "TypeName" field.
+$description_language = "en" ; //two letter iso code for the language of the data in the description field.  Also used for the data container description.
 //Metadata items
-$dcdate = "2012-08-15T11:16:00.0Z" ; //the date the file is created
-$validityStart = "2012-07-24" ;  //Beginning date for which this dataset is the valid one.  This value is applied to the data container (named graph) which holds the data.  
-$validityEnd = "" ;  //Blank indicates that the dataset is currently valid.
-$reportedBy = "UNHCR" ;
-$reported_by_for_uri = "unhcr" ;
-$datacontainer_description = "Loaded by UNOCHA from UNHCR Persons of Concern Locations data, August 2012" ;
+$dcdate = "2012-11-20T11:16:00.0Z" ; //the date the file is created
+$validOn = "2012-08-24" ;  //Beginning date for which this dataset is the valid one.  This value is applied to the data container (named graph) which holds the data.  
+$reportedBy = "UNHCR" ;  
+$reported_by_for_uri = "unhcr" ;  //lowercase common acronym for the reporting organization.  
+$datacontainer_description = "Loaded by UNOCHA from UNHCR Persons of Concern Locations data, Nov 2012" ;
 
 
 //--------------FUNCTIONS--------------------------------------------------------------------------------------
@@ -107,34 +109,33 @@ $time = gettimeofday(); //get time for timestamp which is used as datacontainer 
 $timestamp = $time['sec'] . "." . $time['usec'] ;
 fwrite ($output , $base_data_uri . "datacontainers" . "/" . $reported_by_for_uri . "/" . $timestamp . "> a " . $ns_uri . $DataContainer_id . " .\n") ;
 fwrite ($output , $base_data_uri . "datacontainers" . "/" . $reported_by_for_uri . "/" . $timestamp . "> " . $dc_ns_uri . "date " . "\"" . $dcdate . "\"" . " .\n") ;
-fwrite ($output , $base_data_uri . "datacontainers" . "/" . $reported_by_for_uri . "/" . $timestamp . "> " . $ns_uri . "validityStart " . "\"" . $validityStart . "\"" . " .\n") ;
+fwrite ($output , $base_data_uri . "datacontainers" . "/" . $reported_by_for_uri . "/" . $timestamp . "> " . $ns_uri . "validOn " . "\"" . $validOn . "\"" . " .\n") ;
 fwrite ($output , $base_data_uri . "datacontainers" . "/" . $reported_by_for_uri . "/" . $timestamp . "> " . $ns_uri . "reportedBy " . "\"" . $reportedBy . "\"" . " .\n") ;
-fwrite ($output , $base_data_uri . "datacontainers" . "/" . $reported_by_for_uri . "/" . $timestamp . "> " . $ns_uri . "description " . "\"" . $datacontainer_description . "\"" . " .\n") ;
-if (strlen($validityEnd) > 3) //must have at least 4 chars to be a year
-	{ fwrite ($output , $base_data_uri . "datacontainers" . "/" . $reported_by_for_uri . "/" . $timestamp . " " . $ns_uri . "validityEnd " . "\"" . $validityEnd . "\"" . " .\n") ;}
+fwrite ($output , $base_data_uri . "datacontainers" . "/" . $reported_by_for_uri . "/" . $timestamp . "> " . $ns_uri . "description " . "\"" . $datacontainer_description . "\"" . "@" . $description_language . " .\n") ;
+
 
 fgetcsv($csv_handle,0,",") ; //reads and discards the first line
 
 while(!feof($csv_handle))
 	{
-	$oneup = fgetcsv($csv_handle,0,",") ;
+	$current = fgetcsv($csv_handle,0,",") ;
 	//test for blank line (usually last line at end)
-	if (count($oneup)==1)
+	if (count($current)==1)
 		{break;}
-	$pcode = "UNHCR-POC-" . $oneup[$pcode_element] ;
-	$base_uri = $base_locations_uri . strtolower($oneup[$country_code_element]) ;
+	$pcode = $pcode_base . ceil($current[$pcode_element]) ;
+	$base_uri = $base_locations_uri . strtolower($current[$country_code_element]) ;
 	$apl_uri = $base_uri . "/" . $pcode ;
 	
 	//create apl and its basic attributes
 	fwrite($output , $apl_uri . "> a " . $ns_uri . $apl_id . " .\n") ;
-	fwrite($output , $apl_uri . "> " . $ns_uri . $atLocation_id . " " . $base_data_uri . "locations/admin/" . strtolower($oneup[$country_code_element]) . "/" . $oneup[$country_code_element] . "> .\n") ;
+	fwrite($output , $apl_uri . "> " . $ns_uri . $atLocation_id . " " . $base_data_uri . "locations/admin/" . strtolower($current[$country_code_element]) . "/" . $current[$pcode_of_admin_unit] . "> .\n") ;
 	fwrite($output , $apl_uri . "> " . $ns_uri . $pcode_id . " \"" . $pcode . "\" .\n") ;
-	fwrite($output , $apl_uri . "> " . $ns_uri . $featureName_id . " \"" . utf8_encode($oneup[$featureName_element]) . "\" .\n") ;
-	fwrite($output , $apl_uri . "> " . $ns_uri . $featureRefName_id . " \"" . deaccent($oneup[$featureRefName_element]) . "\" .\n") ;
-	fwrite($output , $apl_uri . "> " . $ns_uri . $description_id . " \"" . $oneup[$description_element] . "\"@" . $description_language . " .\n") ;
+	fwrite($output , $apl_uri . "> " . $ns_uri . $featureName_id . " \"" . utf8_encode($current[$featureName_element]) . "\" .\n") ;
+	fwrite($output , $apl_uri . "> " . $ns_uri . $featureRefName_id . " \"" . deaccent($current[$featureRefName_element]) . "\" .\n") ;
+	fwrite($output , $apl_uri . "> " . $ns_uri . $description_id . " \"" . $current[$description_element] . "\"@" . $description_language . " .\n") ;
 	fwrite($output , $apl_uri . "/" . $geom_uri . ">" . " a " . $geo_ns_uri . $Geometry_id . " .\n") ;
 	fwrite($output , $apl_uri . "> " . $geo_ns_uri . $hasGeometry_id . " " . $apl_uri . "/" . $geom_uri . "> .\n") ;
-	fwrite($output , $apl_uri . "/" . $geom_uri . "> " . $geo_ns_uri . $hasSerialization_id . " " . "\"" . truncate($precision,$oneup[$geom_element]) . "\"^^" . $geo_ns_uri . $wktLiteral_id . " .\n") ;
+	fwrite($output , $apl_uri . "/" . $geom_uri . "> " . $geo_ns_uri . $hasSerialization_id . " " . "\"" . truncate($precision,$current[$geom_element]) . "\"^^" . $geo_ns_uri . $wktLiteral_id . " .\n") ;
 	}
  
  //close the files
