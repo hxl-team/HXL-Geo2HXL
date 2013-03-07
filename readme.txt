@@ -21,4 +21,4 @@ This has been tested on shapefiles only, but should work on any geodata format t
 
 2) Configure the script for your specific translation.  See the "CONFIGURATION" section near the top of the script.
 
-3) Run the PHP file.
+3) Run the PHP file. 
