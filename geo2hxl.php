@@ -64,7 +64,7 @@ $output_file_name = "/Users/carsten/Desktop/Pakistan/Pak_adm1_pco_20110324.ttl" 
 
 //Metadata items
 $dcdate = "2013-04-02T17:45:00.0Z" ; //the date the file is created.  Format must be ISO 8601 format (level of granularity below the day is optional).
-$validon = "2013-04-02" ;  //Beginning date for which this dataset is the valid one (in ISO 8601 format, level of granularity below the day is optional). This value is applied to the data container (i.e. named graph) which holds the data.  The end of the period of validity for this dataset is the first later ValidOn for a given feature.
+$validon = "2011-03-24" ;  //Beginning date for which this dataset is the valid one (in ISO 8601 format, level of granularity below the day is optional). This value is applied to the data container (i.e. named graph) which holds the data.  The end of the period of validity for this dataset is the first later ValidOn for a given feature.
 
 //--------------FUNCTIONS--------------------------------------------------------------------------------------
 function truncate($precision, $current_geom)
@@ -277,6 +277,8 @@ while(!feof($csv_handle))
  //close the files
  fclose($csv_handle) ;
  fclose($output) ;
+
+ echo 'Done. Output written to '.$output_file_name.'.';
 
 
 ?>
