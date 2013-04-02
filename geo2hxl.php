@@ -2,6 +2,7 @@
 //Geo2HXL.php: Reads csv of a single admin layer (converted to csv with WKT geom using ogr2ogr) to HXL triples.  
 
 //CHANGE LOG
+//Version 13 02/04/2013: fix added to handle strangely formatted p-codes (e.g. "     3.000000")
 //Version 12 21/11/2012: fixed declaration of Admin0 to be hxl:atLevel Admin0
 //Version 11 20/11/2012: added logic so that the pcode for the Country does not need to be in the file for Admin 1 (is declared directly as a variable in the configuration)
 //Version 10 16/11/2012: added a couple more characters to the deaccent function
@@ -58,12 +59,12 @@ $pplClass['_10thOrder'] = 'ignored' ;
 
 //Processing settings
 $precision = 7 ; //number of decimal places to which the WKT coordinates will be truncated. For Decimal Degrees, 7 yields approximately cm precision and is the recommended value.  The default ogr2ogr output is 15 decimal places, about the radius of a hydrogen atom.
-$file_to_process = "/Users/carsten/Downloads/Pakistan/Pak_adm1_pco_20110324.csv" ;
-$output_file_name = "/Users/carsten/Downloads/Pakistan/Pak_adm1_pco_20110324.ttl" ;
+$file_to_process = "/Users/carsten/Desktop/Pakistan/Pak_adm1_pco_20110324.csv" ;
+$output_file_name = "/Users/carsten/Desktop/Pakistan/Pak_adm1_pco_20110324.ttl" ;
 
 //Metadata items
-$dcdate = "2013-03-14T17:45:00.0Z" ; //the date the file is created.  Format must be ISO 8601 format (level of granularity below the day is optional).
-$validon = "2013-03-14" ;  //Beginning date for which this dataset is the valid one (in ISO 8601 format, level of granularity below the day is optional). This value is applied to the data container (i.e. named graph) which holds the data.  The end of the period of validity for this dataset is the first later ValidOn for a given feature.
+$dcdate = "2013-04-02T17:45:00.0Z" ; //the date the file is created.  Format must be ISO 8601 format (level of granularity below the day is optional).
+$validon = "2013-04-02" ;  //Beginning date for which this dataset is the valid one (in ISO 8601 format, level of granularity below the day is optional). This value is applied to the data container (i.e. named graph) which holds the data.  The end of the period of validity for this dataset is the first later ValidOn for a given feature.
 
 //--------------FUNCTIONS--------------------------------------------------------------------------------------
 function truncate($precision, $current_geom)
@@ -206,10 +207,18 @@ while(!feof($csv_handle))
 		}
 	else //generate all the triples for the current line of the CSV
 		//set up the base URI that is reused in most of the triples
-		if ($n > 0)
-		{$admunit_uri = $base_uri . $current[$level_n_pcode_element] . ">" ; }
-		else
-		{$admunit_uri = $base_uri . $countryPcode . ">" ; }
+		if ($n > 0){
+			// remove blanks from pcode
+			$current[$level_n_pcode_element] = trim($current[$level_n_pcode_element]);
+
+			// remove "digits" from pcode (e.g. "3.000000" -> "3")
+			$arr = explode(".", $current[$level_n_pcode_element]);
+			$current[$level_n_pcode_element] = $arr[0];
+
+			$admunit_uri = $base_uri . $current[$level_n_pcode_element] . ">" ; 
+		} else {
+			$admunit_uri = $base_uri . $countryPcode . ">" ; 
+		}
 		
 		//create the feature and its basic attributes
 		if ($n == 0) //handles admin 0 (national boundaries)
