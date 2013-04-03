@@ -8,7 +8,7 @@
 //Some metadata elements for the datacontainer are missing (reported by, for example).  
 
 //-------------------CONFIGURATION-----------------------------------------------------
-//Delcare below which csv columns contain which data (first column = 0) and other needed info from user
+//Declare below which csv columns contain which data (first column = 0) and other needed info from user
 //If necessary, configure the code that writes the prefixes at the beginning of the output file.  This is in the "add headers" section a bit further down.
 
 //UNHCR POC List Configuration
