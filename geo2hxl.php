@@ -63,7 +63,7 @@ $file_to_process = "/Users/carsten/Desktop/Pakistan/Pak_adm5_floodAffected_pco_2
 $output_file_name = "/Users/carsten/Desktop/Pakistan/Pak_adm5_floodAffected_pco_20110324.ttl" ;
 
 //Metadata items
-$dcdate = "2013-04-03T13:45:00.0Z" ; //the date the file is created.  Format must be ISO 8601 format (level of granularity below the day is optional).
+$dcdate = "now" ; //the date the file is created.  Format must be ISO 8601 format (level of granularity below the day is optional). Or simply put in "now" to use the current time stamp
 $validon = "2011-03-24" ;  //Beginning date for which this dataset is the valid one (in ISO 8601 format, level of granularity below the day is optional). This value is applied to the data container (i.e. named graph) which holds the data.  The end of the period of validity for this dataset is the first later ValidOn for a given feature.
 
 //--------------FUNCTIONS--------------------------------------------------------------------------------------
@@ -146,6 +146,10 @@ $Country_id = "Country" ;
 
 // set the maximum execution time for the script to 5 minutes (increase if necessary):
 set_time_limit(300); 
+
+// if dcdate is set to "now", generate the time stamp:
+if($dcdate == "now") $dcdate = date("c");
+
 
 $csv_handle = fopen($file_to_process,"r") or exit ("Unable to open") ;
 $output = fopen($output_file_name,"w") or exit ("Unable to create new file") ;
