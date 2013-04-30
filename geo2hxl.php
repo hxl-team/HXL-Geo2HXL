@@ -282,8 +282,8 @@ while(!feof($csv_handle)){
 
 			$clean_name = strToLower(preg_replace('%[^a-z0-9_-]%six','_',$current[$featureName_element]));
 
-			$admunit_uri      = $base_uri . $current[$level_n_minus_one_pcode_element] . "/" . $clean_name . ">";
-			$admunit_geom_uri = $base_uri . $current[$level_n_minus_one_pcode_element] . "/" . $clean_name . "/" . $geom_uri .">";
+			$admunit_uri      = $base_uri . shrink($current[$level_n_minus_one_pcode_element]) . "/" . $clean_name . ">";
+			$admunit_geom_uri = $base_uri . shrink($current[$level_n_minus_one_pcode_element]) . "/" . $clean_name . "/" . $geom_uri .">";
 
 		} else {
 
