@@ -171,8 +171,10 @@ fwrite ($output , $base_data_uri . "datacontainers" . "/" . "unocha/" . $timesta
 
 fgetcsv($csv_handle,0,",") ; //reads and discards the first line
 $csvline = 2 ; //set line counter for error reporting
-while(!feof($csv_handle))
-	{
+while(!feof($csv_handle)){
+
+	$msg = ""; // we'll use this for the error message
+
 	$current = fgetcsv($csv_handle,0,",") ;
 	//test for blank line (usually last line at end), if so, exit the while loop
 	if (count($current)==1)
@@ -186,45 +188,76 @@ while(!feof($csv_handle))
 		// no need to test for the p-code if we don't have it:
 		if($level_n_pcode_element == 999){
 
-			$testarray = array($current[$level_n_minus_one_pcode_element],$current[$featureName_element],$current[$featureRefName_element],$current[$popPlaceClass_element],$current[$geom_element]) ;
+			$testarray = array($current[$level_n_minus_one_pcode_element],
+				               $current[$featureName_element],
+				               $current[$featureRefName_element],
+				               $current[$popPlaceClass_element],
+				               $current[$geom_element]) ;
 
 		} else {
 
-			$testarray = array($current[$level_n_minus_one_pcode_element],$current[$level_n_pcode_element],$current[$featureName_element],$current[$featureRefName_element],$current[$popPlaceClass_element],$current[$geom_element]) ;		
+			$testarray = array($current[$level_n_minus_one_pcode_element],
+				               $current[$level_n_pcode_element],
+				               $current[$featureName_element],
+				               $current[$featureRefName_element],
+				               $current[$popPlaceClass_element],
+				               $current[$geom_element]) ;		
 
 		}
 		
-		for ($i = 1; $i <= count($testarray); $i++)
-			{if ((empty($testarray[$i-1]) &&  $testarray[$i-1] != 0) || ($testarray[$i-1] == ""))
-				{$reject = "reject" ;}
+		for ($i = 1; $i <= count($testarray); $i++) {
+			if ((empty($testarray[$i-1]) &&  $testarray[$i-1] != 0) || ($testarray[$i-1] == "")) {
+				$reject = "reject" ;
+				$msg = $msg . " column $i is empty; ";
 			}
-		}
-	elseif ($n == 0) //handles national boundaries (admin 0)
-		{$reject = 'keep' ;
-		$testarray = array($countryPcode,$countryName,$current[$geom_element]) ;
-		for ($i = 1; $i <= count($testarray); $i++)
-			{if ((empty($testarray[$i-1]) &&  $testarray[$i-1] != 0) || ($testarray[$i-1] == ""))
-				{$reject = "reject" ;}
-			}
-		}
-	elseif ($n == 1) //handles admin 1 
-		{$reject = 'keep' ;
-		$testarray = array($countryPcode,$current[$level_n_pcode_element],$current[$featureName_element],$current[$featureRefName_element],$current[$geom_element]) ;
-		for ($i = 1; $i <= count($testarray); $i++)
-			{if ((empty($testarray[$i-1]) &&  $testarray[$i-1] != 0) || ($testarray[$i-1] == ""))
-				{$reject = "reject" ;}
-			}
+			
 		}
 	
-	elseif ($n > 1 && $n < 999) { //handles sub-national boundaries (admin > 1)
+	} elseif ($n == 0) { //handles national boundaries (admin 0) 
+
+		$reject = 'keep' ;
+		$testarray = array($countryPcode,
+			               $countryName,
+			               $current[$geom_element]) ;
+		
+		for ($i = 1; $i <= count($testarray); $i++) {
+			if ((empty($testarray[$i-1]) &&  $testarray[$i-1] != 0) || ($testarray[$i-1] == "")) {
+				$reject = "reject" ;
+				$msg = $msg . " column $i is empty; ";
+			}
+		}
+
+	} elseif ($n == 1) { //handles admin 1 
 		
 		$reject = 'keep' ;
-		$testarray = array($current[$level_n_minus_one_pcode_element],$current[$level_n_pcode_element],$current[$featureName_element],$current[$featureRefName_element],$current[$geom_element]) ;
-	
-		for ($i = 1; $i <= count($testarray); $i++)
-			{if ((empty($testarray[$i-1]) &&  $testarray[$i-1] != 0) || ($testarray[$i-1] == ""))
-				{$reject = "reject" ;}
+		$testarray = array($countryPcode,
+			               $current[$level_n_pcode_element],
+			               $current[$featureName_element],
+			               $current[$featureRefName_element],
+			               $current[$geom_element]) ;
+
+		for ($i = 0; $i < count($testarray); $i++) {
+			if ((empty($testarray[$i]) &&  $testarray[$i] != 0) || ($testarray[$i] == "")) {
+				$reject = "reject" ;
+				$msg = $msg . " column $i is empty; ";
 			}
+		}
+	
+	} elseif ($n > 1 && $n < 999) { //handles sub-national boundaries (admin > 1)
+		
+		$reject = 'keep' ;
+		$testarray = array($current[$level_n_minus_one_pcode_element],
+			               $current[$level_n_pcode_element],
+			               $current[$featureName_element],
+			               $current[$featureRefName_element],
+			               $current[$geom_element]) ;
+	
+		for ($i = 1; $i <= count($testarray); $i++) {
+			if ((empty($testarray[$i-1]) &&  $testarray[$i-1] != 0) || ($testarray[$i-1] == "")) {
+				$reject = "reject" ;
+				$msg = $msg . " column $i is empty; ";
+			}
+		}
 	
 	} else { 
 		
@@ -238,7 +271,7 @@ while(!feof($csv_handle))
 	if ($reject == "reject") {
 	
 		echo ("
-		Rejected line " . $csvline . " due to missing data. \n") ;
+		Rejected line " . $csvline . " due to missing data: " . $msg . " <br />") ;
 	
 	} else //generate all the triples for the current line of the CSV
 		//set up the base URI that is reused in most of the triples
@@ -325,6 +358,7 @@ while(!feof($csv_handle))
 			fwrite($output , $admunit_geom_uri . " " . $geo_ns_uri . $hasSerialization_id . " " . "\"" . truncate($precision,$current[$geom_element]) . "\"^^" . $geo_ns_uri . $wktLiteral_id . " .\n") ;
 			}
 	$csvline ++;
+
 	}
  
  //close the files
