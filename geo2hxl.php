@@ -64,7 +64,9 @@ $output_file_name = "/Users/carsten/Desktop/CODs/Colombia - Admin 1 missing/admi
 
 //Metadata items
 $dcdate = "now" ; //the date the file is created.  Format must be ISO 8601 format (level of granularity below the day is optional). Or simply put in "now" to use the current time stamp
-$validon = "2011-03-24" ;  //Beginning date for which this dataset is the valid one (in ISO 8601 format, level of granularity below the day is optional). This value is applied to the data container (i.e. named graph) which holds the data.  The end of the period of validity for this dataset is the first later ValidOn for a given feature.
+$validon = "2011-10-01" ;  //Beginning date for which this dataset is the valid one (in ISO 8601 format, level of granularity below the day is optional). This value is applied to the data container (i.e. named graph) which holds the data.  The end of the period of validity for this dataset is the first later ValidOn for a given feature.
+
+mb_internal_encoding('UTF-8');
 
 //--------------FUNCTIONS--------------------------------------------------------------------------------------
 
@@ -109,14 +111,29 @@ function truncate($precision, $current_geom) {
 
 	return $output ;
 }
+
+
+// declare these only once for use in the deaccent function
+$search  = array("ç","æ", "œ", "á","é","í","ó","ú","à","è","ì","ò","ù","ä","ë","ï","ö","ü","ÿ","â","ê","î","ô","û","å","e","i","ø","u","Ô","Â","Á","Í","Ó","ñ","Ñ","É");
+$replace = array("c","ae","oe","a","e","i","o","u","a","e","i","o","u","a","e","i","o","u","y","a","e","i","o","u","a","e","i","o","u","O","A","A","I","O","n","N","E");
+
+foreach ($search as $key => $value) {
+	$search[$key] = utf8_encode($value);
+}
+
+foreach ($replace as $key => $value) {
+	$replace[$key] = utf8_encode($value);
+}
 	
-function deaccent($x)  //used to clean refnames
-	{
-	$search = explode(",","ç,æ,œ,á,é,í,ó,ú,à,è,ì,ò,ù,ä,ë,ï,ö,ü,ÿ,â,ê,î,ô,û,å,e,i,ø,u,Ô,Â");
-	$replace = explode(",","c,ae,oe,a,e,i,o,u,a,e,i,o,u,a,e,i,o,u,y,a,e,i,o,u,a,e,i,o,u,O,A");
-	$output = str_replace($search, $replace, $x);
-	return $output ;
-	}
+//used to clean refnames
+function deaccent($accentedString) { 
+
+	global $search, $replace;
+
+	$deaccented = str_replace($search, $replace, $accentedString);
+	
+	return $deaccented;
+}
 
 // removes unneccessary blanks and digits from pcodes
 function shrink($pcode){
@@ -294,7 +311,7 @@ while(!feof($csv_handle)){
 		// p-code of the containing admin unit, and the place name.
 		if($level_n_pcode_element == 999){
 
-			$clean_name = strToLower(preg_replace('%[^a-z0-9_-]%six','_',$current[$featureName_element]));
+			$clean_name = mb_strtolower(preg_replace('%[^a-z0-9_-]%six','_',deaccent($current[$featureName_element])));
 
 			$admunit_uri      = $base_uri . shrink($current[$level_n_minus_one_pcode_element]) . "/" . $clean_name . ">";
 			$admunit_geom_uri = $base_uri . shrink($current[$level_n_minus_one_pcode_element]) . "/" . $clean_name . "/" . $geom_uri .">";
@@ -330,8 +347,8 @@ while(!feof($csv_handle)){
 			fwrite($output , $admunit_uri . " " . $ns_uri . $atLevel_id . " " . $base_uri . "adminlevel" . $n . "> .\n") ;
 			fwrite($output , $admunit_uri . " " . $ns_uri . $atLocation_id . " " . $base_uri . $countryPcode . "> .\n") ;
 			fwrite($output , $admunit_uri . " " . $ns_uri . $pcode_id . " \"" . shrink($current[$level_n_pcode_element]) . "\" .\n") ;
-			fwrite($output , $admunit_uri . " " . $ns_uri . $featureName_id . " \"" . $current[$featureName_element] . "\" .\n") ;
-			fwrite($output , $admunit_uri . " " . $ns_uri . $featureRefName_id . " \"" . deaccent($current[$featureRefName_element]) . "\" .\n") ;
+			fwrite($output , $admunit_uri . " " . $ns_uri . $featureName_id . " \"" . ucwords(mb_strtolower($current[$featureName_element])) . "\" .\n") ;
+			fwrite($output , $admunit_uri . " " . $ns_uri . $featureRefName_id . " \"" . ucwords(mb_strtolower(deaccent($current[$featureRefName_element]))) . "\" .\n") ;
 			fwrite($output , $admunit_geom_uri . " a " . $geo_ns_uri . $Geometry_id . " .\n") ;
 			fwrite($output , $admunit_uri . " " . $geo_ns_uri . $hasGeometry_id . " " . $admunit_geom_uri . " .\n") ;
 			fwrite($output , $admunit_geom_uri . " " . $geo_ns_uri . $hasSerialization_id . " " . "\"" . truncate($precision,$current[$geom_element]) . "\"^^" . $geo_ns_uri . $wktLiteral_id . " .\n") ;
@@ -345,8 +362,8 @@ while(!feof($csv_handle)){
 			}
 
 			fwrite($output , $admunit_uri . " " . $ns_uri . $pcode_id . " \"" . shrink($current[$level_n_pcode_element]) . "\" .\n") ;
-			fwrite($output , $admunit_uri . " " . $ns_uri . $featureName_id . " \"" . $current[$featureName_element] . "\" .\n") ;
-			fwrite($output , $admunit_uri . " " . $ns_uri . $featureRefName_id . " \"" . deaccent($current[$featureRefName_element]) . "\" .\n") ;
+			fwrite($output , $admunit_uri . " " . $ns_uri . $featureName_id . " \"" . ucwords(mb_strtolower($current[$featureName_element])) . "\" .\n") ;
+			fwrite($output , $admunit_uri . " " . $ns_uri . $featureRefName_id . " \"" . ucwords(mb_strtolower(deaccent($current[$featureRefName_element]))) . "\" .\n") ;
 			fwrite($output , $admunit_geom_uri . " a " . $geo_ns_uri . $Geometry_id . " .\n") ;
 			fwrite($output , $admunit_uri . " " . $geo_ns_uri . $hasGeometry_id . " " . $admunit_geom_uri . " .\n") ;
 			fwrite($output , $admunit_geom_uri . " " . $geo_ns_uri . $hasSerialization_id . " " . "\"" . truncate($precision,$current[$geom_element]) . "\"^^" . $geo_ns_uri . $wktLiteral_id . " .\n") ;
@@ -373,8 +390,8 @@ while(!feof($csv_handle)){
 				fwrite($output , $admunit_uri . " " . $ns_uri . $pcode_id . " \"" . shrink($current[$level_n_pcode_element]) . "\" .\n") ;
 			}
 			
-			fwrite($output , $admunit_uri . " " . $ns_uri . $featureName_id . " \"" . $current[$featureName_element] . "\" .\n") ;
-			fwrite($output , $admunit_uri . " " . $ns_uri . $featureRefName_id . " \"" . deaccent($current[$featureRefName_element]) . "\" .\n") ;
+			fwrite($output , $admunit_uri . " " . $ns_uri . $featureName_id . " \"" . ucwords(mb_strtolower($current[$featureName_element])) . "\" .\n") ;
+			fwrite($output , $admunit_uri . " " . $ns_uri . $featureRefName_id . " \"" . ucwords(mb_strtolower(deaccent($current[$featureRefName_element]))) . "\" .\n") ;
 			fwrite($output , $admunit_geom_uri . " a " . $geo_ns_uri . $Geometry_id . " .\n") ;
 			fwrite($output , $admunit_uri . " " . $geo_ns_uri . $hasGeometry_id . " " . $admunit_geom_uri . " .\n") ;
 			fwrite($output , $admunit_geom_uri . " " . $geo_ns_uri . $hasSerialization_id . " " . "\"" . truncate($precision,$current[$geom_element]) . "\"^^" . $geo_ns_uri . $wktLiteral_id . " .\n") ;
